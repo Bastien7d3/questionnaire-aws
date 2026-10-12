@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Certified Cloud Practitioner - Quiz de Révision S3</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">☁️</div>
+        <div>
+          <div class="brand-title">AWS Cloud Practitioner <span class="badge badge-accent">CLF-C02</span></div>
+          <div class="brand-subtitle">Entraîneur Interactif Statique S3 • 1 142 Questions</div>
+        </div>
+      </div>
+      <div class="nav-controls">
+        <button id="theme-toggle" class="btn btn-icon" title="Changer le thème" aria-label="Changer de thème">
+          <span id="theme-icon">🌙</span>
+        </button>
+        <button id="stats-toggle" class="btn btn-outline" title="Afficher les statistiques">
+          📊 <span class="nav-btn-text">Score & Stats</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Filter & Mode Bar -->
+    <section class="toolbar">
+      <div class="toolbar-group">
+        <label for="exam-select" class="toolbar-label">Source :</label>
+        <select id="exam-select" class="form-select">
+          <option value="all">Tous les examens (1 à 23)</option>
+          <!-- Will be filled dynamically -->
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="filter-mode" class="toolbar-label">Mode :</label>
+        <select id="filter-mode" class="form-select">
+          <option value="all">Toutes les questions 🎲</option>
+          <option value="unseen">Questions non vues uniquement 🆕</option>
+          <option value="mistakes">Questions à revoir (Erreurs) ❌</option>
+          <option value="bookmarks">Questions favorites (⭐)</option>
+        </select>
+      </div>
+
+      <div class="toolbar-actions">
+        <button id="btn-next-random" class="btn btn-primary" title="Tirer une nouvelle question au hasard (Raccourci: R ou N)">
+          🎲 Question au hasard
+        </button>
+      </div>
+    </section>
+
+    <!-- Stats Drawer / Modal Banner -->
+    <div id="stats-banner" class="stats-banner">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-total">0</div>
+        <div class="stat-label">Répondues</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val stat-success" id="stat-correct">0</div>
+        <div class="stat-label">Bonnes réponses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-accuracy">0%</div>
+        <div class="stat-label">Précision</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val stat-warning" id="stat-streak">0 🔥</div>
+        <div class="stat-label">Série active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-remaining">1 142</div>
+        <div class="stat-label">Disponibles</div>
+      </div>
+      <div class="stat-actions">
+        <button id="btn-reset-stats" class="btn btn-sm btn-ghost" title="Remettre à zéro les compteurs">
+          🔄 Réinitialiser stats
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Question Card -->
+    <main class="main-content">
+      <div id="question-card" class="card">
+        <!-- Question Meta -->
+        <div class="question-header">
+          <div class="question-badges">
+            <span id="badge-exam" class="badge badge-primary">Exam #1</span>
+            <span id="badge-number" class="badge badge-secondary">Question 1</span>
+            <span id="badge-type" class="badge badge-info">Choix unique</span>
+          </div>
+          <div class="question-tools">
+            <button id="btn-bookmark" class="btn btn-icon btn-ghost" title="Ajouter aux favoris">
+              <span id="bookmark-icon">☆</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Question Prompt -->
+        <h1 id="question-text" class="question-text">
+          Chargement de la question...
+        </h1>
+
+        <!-- Hint / Choice Instruction -->
+        <div id="choice-instruction" class="choice-instruction">
+          Sélectionnez la meilleure réponse :
+        </div>
+
+        <!-- Options List -->
+        <div id="options-container" class="options-container">
+          <!-- Options injected via JavaScript -->
+        </div>
+
+        <!-- Action Button Bar -->
+        <div class="card-footer">
+          <button id="btn-submit" class="btn btn-accent btn-lg" disabled>
+            ✓ Valider ma réponse
+          </button>
+          <button id="btn-skip" class="btn btn-outline" title="Passer directement à une autre question">
+            Passer ⏭️
+          </button>
+        </div>
+
+        <!-- Result & Feedback Box (hidden before submit) -->
+        <div id="feedback-panel" class="feedback-panel hidden">
+          <div id="feedback-header" class="feedback-header">
+            <!-- Injected via JS -->
+          </div>
+
+          <div id="feedback-explanation" class="feedback-explanation hidden">
+            <!-- Explanation text -->
+          </div>
+
+          <!-- Deep dive links (Approfondir le sujet) -->
+          <div class="deep-dive-section">
+            <div class="deep-dive-title">
+              <span>📖</span>
+              <strong>Approfondir et réviser la notion :</strong>
+            </div>
+            <div id="deep-dive-links" class="deep-dive-links">
+              <!-- Resource links injected via JS -->
+            </div>
+          </div>
+
+          <div class="feedback-actions">
+            <button id="btn-next-after-feedback" class="btn btn-primary btn-lg">
+              Question suivante au hasard 🎲
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        Hébergé sur <strong>Amazon S3 Static Website</strong> • Questions extraites de
+        <a href="https://github.com/kananinirav/AWS-Certified-Cloud-Practitioner-Notes/blob/master/practice-exam/exams.md" target="_blank" rel="noopener noreferrer">AWS Certified Cloud Practitioner Notes</a>
+      </p>
+      <p class="footer-sub">
+        Raccourcis clavier : <code>1-5</code> ou <code>A-E</code> pour sélectionner • <code>Entrée</code> pour valider • <code>R</code> ou <code>N</code> pour question suivante
+      </p>
+    </footer>
+  </div>
+
+  <!-- Load Dataset (Script tag ensures instant offline/file:// support) -->
+  <script src="questions.js"></script>
+  <!-- Load App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
