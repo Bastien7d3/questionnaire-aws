@@ -96,8 +96,8 @@ $scriptDir = $PSScriptRoot
 
 aws s3 cp "$scriptDir\index.html" "s3://$BucketName/index.html" --content-type "text/html" --cache-control "no-cache"
 aws s3 cp "$scriptDir\error.html" "s3://$BucketName/error.html" --content-type "text/html" --cache-control "no-cache"
-aws s3 cp "$scriptDir\style.css" "s3://$BucketName/style.css" --content-type "text/css"
-aws s3 cp "$scriptDir\app.js" "s3://$BucketName/app.js" --content-type "application/javascript"
+aws s3 cp "$scriptDir\style.css" "s3://$BucketName/style.css" --content-type "text/css" --cache-control "no-cache"
+aws s3 cp "$scriptDir\app.js" "s3://$BucketName/app.js" --content-type "application/javascript" --cache-control "no-cache"
 aws s3 cp "$scriptDir\questions.js" "s3://$BucketName/questions.js" --content-type "application/javascript"
 aws s3 cp "$scriptDir\questions.json" "s3://$BucketName/questions.json" --content-type "application/json"
 
