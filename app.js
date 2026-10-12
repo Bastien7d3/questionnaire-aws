@@ -18,14 +18,29 @@
   const STORAGE_KEY_SEEN = 'aws_quiz_clf_seen';
   const STORAGE_KEY_MISTAKES = 'aws_quiz_clf_mistakes';
   const STORAGE_KEY_THEME = 'aws_quiz_theme';
+  const STORAGE_KEY_USERNAME = 'aws_quiz_username';
+  const STORAGE_KEY_MAX_STREAK = 'aws_quiz_max_streak';
+  const SCOREBOARD_API_URL = 'https://xhzsn3drllceqzlmqqwl5gt3wq0ojwpr.lambda-url.eu-west-3.on.aws/';
 
   // State objects loaded from storage
   let stats = loadJson(STORAGE_KEY_STATS, { answered: 0, correct: 0, streak: 0 });
   let bookmarks = new Set(loadJson(STORAGE_KEY_BOOKMARKS, []));
   let seen = new Set(loadJson(STORAGE_KEY_SEEN, []));
   let mistakes = new Set(loadJson(STORAGE_KEY_MISTAKES, []));
+  let currentUsername = localStorage.getItem(STORAGE_KEY_USERNAME) || '';
+  let maxStreak = parseInt(localStorage.getItem(STORAGE_KEY_MAX_STREAK) || '0', 10);
 
   // --- DOM Elements ---
+  const elUserBtn = document.getElementById('user-btn');
+  const elUserBtnText = document.getElementById('user-btn-text');
+  const elScoreboardToggle = document.getElementById('scoreboard-toggle');
+  const elScoreboardModal = document.getElementById('scoreboard-modal');
+  const elBtnCloseScoreboard = document.getElementById('btn-close-scoreboard');
+  const elInputScoreboardUser = document.getElementById('input-scoreboard-user');
+  const elBtnSaveUser = document.getElementById('btn-save-user');
+  const elScoreboardContent = document.getElementById('scoreboard-content');
+  const elBtnRefreshScoreboard = document.getElementById('btn-refresh-scoreboard');
+
   const elThemeToggle = document.getElementById('theme-toggle');
   const elThemeIcon = document.getElementById('theme-icon');
   const elStatsToggle = document.getElementById('stats-toggle');
@@ -117,15 +132,113 @@
   elBtnResetStats.addEventListener('click', () => {
     if (confirm('Voulez-vous réinitialiser vos statistiques de réponses et votre série ?')) {
       stats = { answered: 0, correct: 0, streak: 0 };
+      maxStreak = 0;
       seen.clear();
       mistakes.clear();
       saveJson(STORAGE_KEY_STATS, stats);
       saveJson(STORAGE_KEY_SEEN, []);
       saveJson(STORAGE_KEY_MISTAKES, []);
+      localStorage.setItem(STORAGE_KEY_MAX_STREAK, '0');
       updateStatsDisplay();
+      if (currentUsername) syncScoreToDynamoDB();
       alert('Statistiques réinitialisées avec succès.');
     }
   });
+
+  // --- User & DynamoDB Scoreboard ---
+  function updateUsernameDisplay() {
+    if (currentUsername) {
+      elUserBtnText.textContent = currentUsername;
+      if (elInputScoreboardUser) elInputScoreboardUser.value = currentUsername;
+    } else {
+      elUserBtnText.textContent = 'Définir pseudo';
+      if (elInputScoreboardUser) elInputScoreboardUser.value = '';
+    }
+  }
+
+  function setUsername(name) {
+    name = (name || '').trim();
+    if (!name) return;
+    currentUsername = name;
+    localStorage.setItem(STORAGE_KEY_USERNAME, name);
+    updateUsernameDisplay();
+    syncScoreToDynamoDB();
+  }
+
+  async function syncScoreToDynamoDB() {
+    if (!currentUsername) return;
+    try {
+      const payload = {
+        username: currentUsername,
+        score: stats.correct,
+        total_answered: stats.answered,
+        streak: stats.streak,
+        max_streak: maxStreak
+      };
+      await fetch(SCOREBOARD_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Synchro DynamoDB échouée:', err);
+    }
+  }
+
+  async function loadScoreboard() {
+    if (!elScoreboardContent) return;
+    elScoreboardContent.innerHTML = '<div class="scoreboard-loading">Chargement du classement depuis Amazon DynamoDB...</div>';
+    try {
+      const res = await fetch(SCOREBOARD_API_URL);
+      const data = await res.json();
+      if (!data.success || !data.scoreboard || data.scoreboard.length === 0) {
+        elScoreboardContent.innerHTML = '<div class="scoreboard-loading">Aucun score enregistré pour l\'instant. Soyez le premier ! 🏆</div>';
+        return;
+      }
+      renderScoreboardTable(data.scoreboard);
+    } catch (err) {
+      elScoreboardContent.innerHTML = '<div class="scoreboard-loading" style="color:var(--red);">Impossible de joindre l\'API DynamoDB.</div>';
+    }
+  }
+
+  function renderScoreboardTable(scoreboard) {
+    let html = `
+      <table class="scoreboard-table">
+        <thead>
+          <tr>
+            <th>Rang</th>
+            <th>Réviseur</th>
+            <th>Score</th>
+            <th>Total</th>
+            <th>Précision</th>
+            <th>Série Max</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    scoreboard.forEach(row => {
+      const isCurrent = currentUsername && row.username.toLowerCase() === currentUsername.toLowerCase();
+      let rankDisplay = `${row.rank}`;
+      if (row.rank === 1) rankDisplay = '<span class="rank-badge rank-1">🥇 1</span>';
+      else if (row.rank === 2) rankDisplay = '<span class="rank-badge rank-2">🥈 2</span>';
+      else if (row.rank === 3) rankDisplay = '<span class="rank-badge rank-3">🥉 3</span>';
+
+      html += `
+        <tr class="${isCurrent ? 'current-user-row' : ''}">
+          <td>${rankDisplay}</td>
+          <td><strong>${escapeHtml(row.username)}</strong> ${isCurrent ? '<span style="font-size:11px;color:var(--blue);font-weight:700;">(Vous)</span>' : ''}</td>
+          <td><span style="color:var(--green);font-weight:700;">${row.score}</span></td>
+          <td>${row.total_answered}</td>
+          <td>${row.accuracy}%</td>
+          <td>${row.max_streak} 🔥</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    elScoreboardContent.innerHTML = html;
+  }
 
   // --- Exam Options Population ---
   function populateExamSelect() {
@@ -325,9 +438,25 @@
       stats.streak = 0;
       mistakes.add(currentQuestion.id);
     }
+
+    if (stats.streak > maxStreak) {
+      maxStreak = stats.streak;
+      localStorage.setItem(STORAGE_KEY_MAX_STREAK, maxStreak.toString());
+    }
+
     saveJson(STORAGE_KEY_STATS, stats);
     saveJson(STORAGE_KEY_MISTAKES, Array.from(mistakes));
     updateStatsDisplay();
+
+    // Auto-sync to DynamoDB
+    if (currentUsername) {
+      syncScoreToDynamoDB();
+    } else if (stats.answered === 1) {
+      setTimeout(() => {
+        const entered = prompt("Félicitations pour votre première réponse ! Entrez votre pseudo pour figurer dans le classement :", "Bastien");
+        if (entered) setUsername(entered);
+      }, 500);
+    }
 
     // Update Options Styling
     const optionElements = document.querySelectorAll('.option-item');
@@ -467,8 +596,57 @@
     pickRandomQuestion();
   });
 
+  // Scoreboard & User Events
+  if (elUserBtn) {
+    elUserBtn.addEventListener('click', () => {
+      const entered = prompt("Entrez ou modifiez votre pseudo pour le classement :", currentUsername || "Bastien");
+      if (entered) setUsername(entered);
+    });
+  }
+
+  if (elScoreboardToggle) {
+    elScoreboardToggle.addEventListener('click', () => {
+      elScoreboardModal.classList.remove('hidden');
+      loadScoreboard();
+    });
+  }
+
+  if (elBtnCloseScoreboard) {
+    elBtnCloseScoreboard.addEventListener('click', () => {
+      elScoreboardModal.classList.add('hidden');
+    });
+  }
+
+  if (elScoreboardModal) {
+    elScoreboardModal.addEventListener('click', (e) => {
+      if (e.target === elScoreboardModal) {
+        elScoreboardModal.classList.add('hidden');
+      }
+    });
+  }
+
+  if (elBtnSaveUser) {
+    elBtnSaveUser.addEventListener('click', () => {
+      const val = elInputScoreboardUser.value.trim();
+      if (val) {
+        setUsername(val);
+        loadScoreboard();
+      }
+    });
+  }
+
+  if (elBtnRefreshScoreboard) {
+    elBtnRefreshScoreboard.addEventListener('click', loadScoreboard);
+  }
+
   // Keyboard Navigation
   window.addEventListener('keydown', (e) => {
+    // If modal open, close on Esc
+    if (e.key === 'Escape' && elScoreboardModal && !elScoreboardModal.classList.contains('hidden')) {
+      elScoreboardModal.classList.add('hidden');
+      return;
+    }
+
     // Ignore keyboard shortcuts if focusing input or select
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
       return;
@@ -499,6 +677,7 @@
   // --- Init App ---
   async function init() {
     initTheme();
+    updateUsernameDisplay();
 
     // Check if questions are loaded via script window.AWS_QUESTIONS_DATA
     if (window.AWS_QUESTIONS_DATA && Array.isArray(window.AWS_QUESTIONS_DATA) && window.AWS_QUESTIONS_DATA.length > 0) {
@@ -517,6 +696,11 @@
 
     populateExamSelect();
     updateStatsDisplay();
+
+    // Sync stats on load if user is set
+    if (currentUsername && stats.answered > 0) {
+      syncScoreToDynamoDB();
+    }
 
     // Pick a random question on page load without auto-scrolling
     pickRandomQuestion(false);

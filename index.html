@@ -19,11 +19,17 @@
         </div>
       </div>
       <div class="nav-controls">
+        <button id="user-btn" class="btn btn-outline" title="Changer de pseudo">
+          👤 <span id="user-btn-text">Pseudo</span>
+        </button>
+        <button id="scoreboard-toggle" class="btn btn-outline" title="Afficher le classement DynamoDB">
+          🏆 <span class="nav-btn-text">Classement</span>
+        </button>
         <button id="theme-toggle" class="btn btn-icon" title="Changer le thème" aria-label="Changer de thème">
           <span id="theme-icon">🌙</span>
         </button>
         <button id="stats-toggle" class="btn btn-outline" title="Afficher les statistiques">
-          📊 <span class="nav-btn-text">Score & Stats</span>
+          📊 <span class="nav-btn-text">Stats</span>
         </button>
       </div>
     </header>
@@ -155,6 +161,37 @@
         </div>
       </div>
     </main>
+
+    <!-- Scoreboard Modal (DynamoDB) -->
+    <div id="scoreboard-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🏆</span> Classement des Réviseurs AWS
+          </div>
+          <button id="btn-close-scoreboard" class="btn btn-icon btn-ghost" title="Fermer la fenêtre">✕</button>
+        </div>
+
+        <div class="scoreboard-user-bar">
+          <label for="input-scoreboard-user">Votre Pseudo :</label>
+          <input type="text" id="input-scoreboard-user" class="form-input" placeholder="Ex: Bastien" maxlength="25">
+          <button id="btn-save-user" class="btn btn-sm btn-primary">Enregistrer</button>
+        </div>
+
+        <div id="scoreboard-content" class="scoreboard-table-container">
+          <div class="scoreboard-loading">Chargement du classement depuis Amazon DynamoDB...</div>
+        </div>
+
+        <div class="modal-footer">
+          <div id="scoreboard-sync-status" class="sync-status">
+            ☁️ Alimenté par Amazon DynamoDB & AWS Lambda (0 €)
+          </div>
+          <button id="btn-refresh-scoreboard" class="btn btn-sm btn-outline">
+            🔄 Rafraîchir
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer">

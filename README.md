@@ -50,26 +50,20 @@ Site web statique moderne, ultra-rapide et autonome hébergé sur **Amazon S3 (S
 
 ---
 
-## 🏗️ Architecture S3 Serverless
+## 🏗️ Architecture Serverless (100% Gratuit à vie / 0,00 €)
 
+```mermaid
+flowchart LR
+    Browser["Navigateur Client<br/>(Interface du Quiz)"] -->|Hébergement Statique| S3["Amazon S3<br/>quiz-aws-certif-bastien-2026"]
+    Browser -->|GET top 20 / POST stats| LURL["Lambda Function URL<br/>(CORS public gratuit à vie)"]
+    LURL -->|Scan / PutItem| DDB[("Amazon DynamoDB<br/>Table: aws-quiz-scoreboard<br/>(Mode Provisioned 5 RCU/WCU)")]
 ```
-                       ┌────────────────────────────────────────────────────────┐
-                       │               Amazon S3 Static Website                 │
-                       │          Bucket : quiz-aws-certif-bastien-2026         │
-                       │               Région : eu-west-3 (Paris)               │
-                       │                                                        │
-Navigateur Client ────►│   ├── index.html       (Interface du Quiz)             │
-(HTTP / HTTPS)         │   ├── style.css        (Feuille de style moderne)      │
-                       │   ├── app.js           (Moteur logique et stats)       │
-                       │   ├── questions.js     (Jeu complet de 1142 questions) │
-                       │   ├── questions.json   (Données brutes structurées)    │
-                       │   └── error.html       (Document d'erreur 404)         │
-                       │                                                        │
-                       │   Bucket Policy : s3:GetObject (Public Allow)          │
-                       │   Block Public Access : Désactivé                      │
-                       │   Static Website Hosting : Activé                      │
-                       └────────────────────────────────────────────────────────┘
-```
+
+| Composant | Service AWS | Rôle | Coût |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | Amazon S3 | Hébergement web statique haute disponibilité | ~0,00 € (Inclus Free Tier) |
+| **Backend API** | AWS Lambda (Function URL) | Traitement des scores & classement (Top 20) | **0,00 €** (1M req/mois Always Free) |
+| **Base de Données** | Amazon DynamoDB | Stockage persistant des pseudos et statistiques | **0,00 €** (25 Go + 25 RCU/WCU Always Free) |
 
 ---
 
