@@ -190,6 +190,9 @@
     elScoreboardContent.innerHTML = '<div class="scoreboard-loading">Chargement du classement depuis Amazon DynamoDB...</div>';
     try {
       const res = await fetch(SCOREBOARD_API_URL);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = await res.json();
       if (!data.success || !data.scoreboard || data.scoreboard.length === 0) {
         elScoreboardContent.innerHTML = '<div class="scoreboard-loading">Aucun score enregistré pour l\'instant. Soyez le premier ! 🏆</div>';
@@ -197,7 +200,8 @@
       }
       renderScoreboardTable(data.scoreboard);
     } catch (err) {
-      elScoreboardContent.innerHTML = '<div class="scoreboard-loading" style="color:var(--red);">Impossible de joindre l\'API DynamoDB.</div>';
+      console.error('Erreur chargement scoreboard:', err);
+      elScoreboardContent.innerHTML = `<div class="scoreboard-loading" style="color:var(--red);">Impossible de joindre l'API DynamoDB (${err.message || 'Erreur réseau'}).</div>`;
     }
   }
 
