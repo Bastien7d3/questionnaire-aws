@@ -169,7 +169,7 @@
     return pool;
   }
 
-  function pickRandomQuestion() {
+  function pickRandomQuestion(shouldScroll = true) {
     const pool = getFilteredQuestions();
     if (pool.length === 0) {
       const mode = elFilterMode.value;
@@ -179,7 +179,7 @@
       if (mode === 'bookmarks') msg = 'Vous n\'avez aucun favori enregistré avec une étoile (⭐).';
       alert(msg);
       elFilterMode.value = 'all';
-      return pickRandomQuestion();
+      return pickRandomQuestion(shouldScroll);
     }
 
     // Avoid picking the exact same question consecutively if pool > 1
@@ -191,11 +191,11 @@
       nextQ = pool[Math.floor(Math.random() * pool.length)];
     }
 
-    loadQuestion(nextQ);
+    loadQuestion(nextQ, shouldScroll);
   }
 
   // --- Render Question ---
-  function loadQuestion(q) {
+  function loadQuestion(q, shouldScroll = true) {
     currentQuestion = q;
     isAnswered = false;
     selectedOptions.clear();
@@ -253,8 +253,13 @@
 
     updateStatsDisplay();
 
-    // Scroll smoothly to question top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll smoothly to the question card
+    if (shouldScroll) {
+      const questionCard = document.getElementById('question-card');
+      if (questionCard) {
+        questionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   }
 
   function handleOptionClick(letter, element) {
@@ -513,8 +518,8 @@
     populateExamSelect();
     updateStatsDisplay();
 
-    // Pick a random question immediately on page load!
-    pickRandomQuestion();
+    // Pick a random question on page load without auto-scrolling
+    pickRandomQuestion(false);
   }
 
   // Run on DOM ready
